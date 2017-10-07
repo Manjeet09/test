@@ -1,0 +1,84 @@
+apt-get update   
+apt-get -y install sudo
+apt-get -y install wget
+apt-get -y install curl
+apt-get -y install vim
+sudo apt-get install default-jdk
+wget -qO - http://packages.confluent.io/deb/3.3/archive.key | sudo apt-key add -
+vi /etc/apt/sources.list
+add this in the end
+deb [arch=amd64] http://packages.confluent.io/deb/3.3 stable main
+
+sudo apt-get update && sudo apt-get install confluent-platform-oss-2.11
+
+export PATH=/usr/bin/confluent/bin:$PATH
+or
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+confluent start schema-registry
+
+or
+
+$ ./bin/zookeeper-server-start ./etc/kafka/zookeeper.properties
+$ ./bin/kafka-server-start ./etc/kafka/server.properties
+$ ./bin/schema-registry-start ./etc/schema-registry/schema-registry.properties
+
+
+./bin/kafka-avro-console-producer \
+         --broker-list localhost:9092 --topic test \
+         --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"f1","type":"string"}]}'
+		 
+{"f1": "value1"}
+{"f1": "value2"}
+{"f1": "value3"}
+
+
+now consumer
+
+
+./bin/kafka-avro-console-consumer --topic test \
+         --zookeeper localhost:2181 \
+         --from-beginning		 
+		 
+		 
+		 
+confluent load file-source
+{
+  "name": "file-source",
+  "config": {
+    "connector.class": "FileStreamSource",
+    "tasks.max": "1",
+    "file": "test.txt",
+    "topics": "connect-test",
+    "name": "file-source"
+  },
+  "tasks": []
+}
+
+
+
+./kafka-topics --create \
+          --zookeeper localhost:2181 \
+          --replication-factor 1 \
+          --partitions 1 \
+          --topic streams-file-input
+		  
+./kafka-topics --create \
+          --zookeeper localhost:2181 \
+          --replication-factor 1 \
+          --partitions 1 \
+          --topic streams-wordcount-output	  
+		  
+ cat /tmp/file-input.txt | ./kafka-console-producer --broker-list localhost:9092 --topic streams-file-input		  
+ 
+ 
+ ./kafka-run-class org.apache.kafka.streams.examples.wordcount.WordCountDemo
+ 
+ 
+ ./kafka-console-consumer --zookeeper localhost:2181 \
+          --topic streams-wordcount-output \
+          --from-beginning \
+          --formatter kafka.tools.DefaultMessageFormatter \
+          --property print.key=true \
+          --property key.deserializer=org.apache.kafka.common.serialization.StringDeserializer \
+          --property value.deserializer=org.apache.kafka.common.serialization.LongDeserializer
+		  
